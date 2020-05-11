@@ -1,0 +1,17 @@
+#index:
+#    path: /
+#    controller: App\Controller\DefaultController::index
+
+google_auth_return:
+    path: /login/google
+
+twitch_auth_return:
+    path: /login/twitch
+
+security_logout:
+    path: /logout
+
+api:
+    prefix: /api
+    type: rest
+    resource: App\Controller\ApiController

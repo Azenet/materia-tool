@@ -1,0 +1,108 @@
+@import "~bootstrap/scss/bootstrap";
+
+$footer-height: 60px;
+
+body {
+	margin-bottom: $footer-height*2;
+	> main {
+		padding-top: 5rem;
+	}
+}
+
+footer {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	height: $footer-height;
+	line-height: $footer-height;
+	background-color: $gray-100;
+	color: $text-muted;
+}
+
+html {
+	position: relative;
+	min-height: 100%;
+}
+
+.item-element .selected {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+//td > div.materia-row {
+//	padding: 0 20px;
+//}
+
+div.floating {
+	position: absolute;
+	top: 60px;
+}
+
+#child-loadout-list {
+	.clickable-row {
+		cursor: pointer;
+		line-height: 1;
+
+		.indent {
+			display: inline-block;
+			font-family: monospace;
+			color: $gray-600;
+
+			&.indent-last {
+				margin-right: 4px;
+			}
+		}
+
+		&.clickable-row-active > span:last-of-type {
+			font-weight: bold;
+		}
+	}
+}
+
+.change-display-solution table tbody tr {
+	padding: 0;
+
+	td {
+		padding: 0
+	}
+
+	&.change-display-solution-move-materia td {
+		border-top: 0;
+		padding-bottom: 10px;
+	}
+
+	td.swap {
+		max-width: 2ch;
+	}
+
+	td.slot {
+		font-weight: bold;
+	}
+}
+
+td.materia {
+	color: white;
+
+	&.materia-green {
+		background-color: darkgreen;
+	}
+
+	&.materia-blue {
+		background-color: midnightblue;
+	}
+
+	&.materia-orange {
+		background-color: orangered;
+	}
+
+	&.materia-red {
+		background-color: darkred;
+	}
+
+	&.materia-purple {
+		background-color: purple;
+	}
+
+	.materia-text {
+		font-weight: bold;
+	}
+}

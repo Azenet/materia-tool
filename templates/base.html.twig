@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Materia tool{% endblock %}</title>
+        {% block stylesheets %}
+            {{ encore_entry_link_tags('app') }}
+        {% endblock %}
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+            <div class="container-fluid d-flex">
+                <a class="navbar-brand" href="{{ path('default_index') }}">Materia tool</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+                    <ul class="navbar-nav w-100">
+                        {% if is_granted('ROLE_USER') %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('security_logout') }}">{{ app.user.username }}</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <main role="main">
+            <div class="container-fluid">
+                {% for label, messages in app.flashes(['info', 'notice']) %}
+                    {% for message in messages %}
+                        <div class="alert alert-info">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+
+                {% for message in app.flashes('success') %}
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+
+                {% for label, messages in app.flashes(['warning', 'error']) %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ label }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+
+                {% block body %}
+                {% endblock %}
+            </div>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="row">
+                    <div class="col">
+                        Tool by <a href="https://twitter.com/shellgratuit" target="_blank">@shellgratuit</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        {% block javascripts %}
+            {{ encore_entry_script_tags('app') }}
+        {% endblock %}
+    </body>
+</html>

@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+	<div class="container">
+		{{ form_start(form) }}
+		{{ form_errors(form) }}
+		{{ form_rest(form) }}
+		<div>
+			<button type="submit" class="btn btn-primary">Submit</button>
+		</div>
+		{{ form_end(form) }}
+	</div>
+{% endblock %}

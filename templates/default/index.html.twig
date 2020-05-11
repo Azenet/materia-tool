@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				{% if is_granted('ROLE_USER') %}
+					{% for ml in loadouts|filter(m => m.parent is same as(null)) %}
+						<p><a href="{{ path('default_view_loadout', {loadout: ml.id}) }}">{{ ml.name }}</a></p>
+					{% endfor %}
+					<p>
+						{{ form_start(demoform) }}
+						<a href="{{ path('default_add_loadout') }}" class="btn btn-primary">Add new base materia loadout</a>
+						<button type="submit" class="btn btn-outline-secondary">Add example base loadout</button>
+						{{ form_end(demoform) }}
+					</p>
+				{% else %}
+					<a href="{{ path('default_login') }}">Login with Twitch</a>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+{% endblock %}

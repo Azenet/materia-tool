@@ -1,0 +1,5 @@
+handcraftedinthealps_rest_routing:
+    routing_loader:
+        default_format: 'json'
+        prefix_methods: true
+        include_format: true

@@ -1,0 +1,69 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+	<div class="row">
+		<div class="col">
+			<h1>
+				Loadout {{ loadout.name }}
+				{#FIXME add icons#}
+				<a href="{{ path('default_edit_loadout', {loadout: loadout.id}) }}" class="btn btn-link">Edit</a>
+			</h1>
+		</div>
+		<div class="col-auto">
+			<div class="row">
+				<div class="col-auto">
+					{{ form_start(delete) }}
+					<button type="submit" class="btn btn-danger" onclick="return confirm('This will delete this loadout if it has no loadouts depending on it. THIS CANNOT BE UNDONE.');">Delete loadout</button>
+					{{ form_end(delete) }}
+				</div>
+				<div class="col-auto">
+					{{ form_start(clone) }}
+					<button type="submit" class="btn btn-outline-primary">Create changes from this loadout</button>
+					{{ form_end(clone) }}
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<hr />
+
+	<style>
+		table tbody tr td {
+			width: calc(100% / 7) !important;
+		}
+	</style>
+	<div class="row">
+		<div class="col-12 col-md-3 col-sm-4">
+			<div id="sidebar" data-fav="{{ loadout.preferredChangeKey|default }}"></div>
+		</div>
+		<div class="col-12 col-md-9 col-sm-8">
+			<div class="row mb-3">
+				<div class="col">
+					{% if loadout.parent|default %}
+						<a class="btn btn-outline-primary" href="{{ path('default_view_loadout', {loadout: loadout.parent.id}) }}">Go to parent: {{ loadout.parent.name }}</a>
+					{% endif %}
+				</div>
+				<div class="col-auto">
+					{% for child in loadout.children %}
+						<a class="btn btn-outline-primary" href="{{ path('default_view_loadout', {loadout: child.id}) }}">Go to child: {{ child.name }}</a>
+					{% endfor %}
+				</div>
+			</div>
+			<div id="table" data-id="{{ loadout.id }}">
+
+			</div>
+
+			<div class="row">
+				<div class="col">
+					<span class="small font-italic">Click any materia/empty slot to edit.</span>
+				</div>
+			</div>
+		</div>
+
+	</div>
+{% endblock %}
+
+{% block javascripts %}
+	{{ parent() }}
+	{{ encore_entry_script_tags('table') }}
+{% endblock %}

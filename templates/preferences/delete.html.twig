@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+	<div class="container">
+		<div class="row">
+			<div class="col">
+				<div class="alert alert-danger">
+					This will permanently delete your account and all the loadouts you may have. THIS CANNOT BE UNDONE.
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				{{ form_start(form) }}
+				{{ form_rest(form) }}
+				<button type="submit" class="btn btn-danger">Delete my account</button>
+				{{ form_end(form) }}
+			</div>
+		</div>
+	</div>
+{% endblock %}

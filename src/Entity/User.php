@@ -45,6 +45,15 @@ class User implements UserInterface {
 	 */
 	private $materiaLoadouts;
 
+	public const MATERIA_COORDINATES_PREFERENCE_ROW_NUMBER = 0;
+	public const MATERIA_COORDINATES_PREFERENCE_LETTER = 1;
+	public const MATERIA_COORDINATES_PREFERENCE_CHARACTER_ROW_NUMBER = 2;
+	public const MATERIA_COORDINATES_PREFERENCE_CHARACTER_LETTER = 3;
+	/**
+	 * @ORM\Column(type="integer")
+	 */
+	private $materiaCoordinatesPreference = self::MATERIA_COORDINATES_PREFERENCE_ROW_NUMBER;
+
 	public function __construct() {
 		$this->materiaLoadouts = new ArrayCollection();
 	}
@@ -157,6 +166,16 @@ class User implements UserInterface {
 
 	public function setUsername(string $username): self {
 		$this->username = $username;
+
+		return $this;
+	}
+
+	public function getMateriaCoordinatesPreference(): ?int {
+		return $this->materiaCoordinatesPreference;
+	}
+
+	public function setMateriaCoordinatesPreference(int $materiaCoordinatesPreference): self {
+		$this->materiaCoordinatesPreference = $materiaCoordinatesPreference;
 
 		return $this;
 	}

@@ -18,6 +18,29 @@ let materiaChoices: any = [];
 let materiaMatch: any = [];
 let loadoutId: any = null;
 let completeIndentLevels: any = [];
+let materiaCoordinatePreference = Number.parseInt(document.querySelector('meta[name=materia-preference]').getAttribute('content')) || 0;
+
+class MateriaCoordinateDisplay extends React.Component<{ character: string, row: number, col: number }, any> {
+    render() {
+        let value;
+
+        if (materiaCoordinatePreference % 2 === 0) {
+            value = `${String.fromCharCode(65 + this.props.row)}${this.props.col + 1}`;
+        } else {
+            if (this.props.row === 0) {
+                value = this.props.col + 1;
+            } else {
+                value = String.fromCharCode(65 + this.props.col);
+            }
+        }
+
+        if (materiaCoordinatePreference >= 2) {
+            value = this.props.character.toUpperCase() + value;
+        }
+
+        return <span>{value}</span>;
+    }
+}
 
 class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
     constructor(props: any) {
@@ -114,7 +137,10 @@ class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
                 this.onClick()
             }}>
             <div className="row no-gutters materia-row">
-                <div className="col-auto">{String.fromCharCode(65 + this.props.data.row)}{this.props.data.col + 1}&nbsp;</div>
+                <div className="col-auto">
+                    <MateriaCoordinateDisplay character={this.props.data.charName} row={this.props.data.row} col={this.props.data.col} />
+                    &nbsp;
+                </div>
                 <div className="col">
                     {content}
                 </div>
@@ -341,12 +367,18 @@ class ChangeDisplaySolutionMoveSlots extends React.Component<{ move: any }, any>
     render() {
         let from;
         if (this.props.move.from.charName !== 'i') {
-            from = `${String.fromCharCode(65 + this.props.move.from.row)}${this.props.move.from.col + 1}`;
+            from = <MateriaCoordinateDisplay
+                character={this.props.move.from.charName}
+                row={this.props.move.from.row}
+                col={this.props.move.from.col} />;
         }
 
         let to;
         if (this.props.move.to.charName !== 'i') {
-            to = `${String.fromCharCode(65 + this.props.move.to.row)}${this.props.move.to.col + 1}`;
+            to = <MateriaCoordinateDisplay
+                character={this.props.move.to.charName}
+                row={this.props.move.to.row}
+                col={this.props.move.to.col} />;
         }
 
         return <tr className="change-display-solution-move-slots">

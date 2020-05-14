@@ -279,9 +279,9 @@ class LoadoutHelper {
 			$hb = '';
 			foreach ($moves as $move) {
 				$hb .= sprintf('%s%d%d-%d|%s%d%d-%d#', $move['from']->getCharName(), $move['from']->getRow(),
-					$move['from']->getCol(), $move['from']->getMateria()->getId(),
+					$move['from']->getCol(), $move['from']->getMateria() ? $move['from']->getMateria()->getId() : 0,
 					$move['to']->getCharName(), $move['to']->getRow(),
-					$move['to']->getCol(), $move['to']->getMateria()->getId());
+					$move['to']->getCol(), $move['to']->getMateria() ? $move['to']->getMateria()->getId() : 0);
 			}
 
 			foreach ($solutions as $sol) {
@@ -350,7 +350,10 @@ class LoadoutHelper {
 					if ($ri->getCharName() === $i->getCharName()
 						&& $ri->getRow() === $i->getRow()
 						&& $ri->getCol() === $i->getCol()
-						&& $ri->getMateria()->getId() !== $i->getMateria()->getId()) {
+						&& (
+							(($ri->getMateria() === null) !== ($i->getMateria() === null))
+							|| ($ri->getMateria() !== null
+								&& $ri->getMateria()->getId() !== $i->getMateria()->getId()))) {
 						goto invalid;
 					}
 				}

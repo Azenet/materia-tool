@@ -370,12 +370,12 @@ class ChangeDisplaySolutionMoveSlots extends React.Component<{ move: any }, any>
 class ChangeDisplaySolutionMoveMateria extends React.Component<{ move: any }, any> {
     render() {
         return <tr className="change-display-solution-move-materia">
-            <td className="from materia" style={{color: this.props.move.from.materia.type.color}} colSpan={2}>
-                {this.props.move.from.materia.name}
+            <td className="from materia" style={{color: this.props.move.from.materia?.type?.color}} colSpan={2}>
+                {this.props.move.from.materia?.name}
             </td>
             <td className="swap">&nbsp;</td>
-            <td className="to materia" style={{color: this.props.move.to.materia.type.color}} colSpan={2}>
-                {this.props.move.to.materia.name}
+            <td className="to materia" style={{color: this.props.move.to.materia?.type?.color}} colSpan={2}>
+                {this.props.move.to.materia?.name}
             </td>
         </tr>;
     }

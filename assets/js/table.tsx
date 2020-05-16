@@ -21,6 +21,12 @@ const characters: any = {
 
 let materiaChoices: any = [];
 let materiaMatch: any = [];
+const emptyMateriaChoice = {
+    label: 'Empty',
+    value: 0,
+    color: 'black'
+};
+
 let loadoutId: any = null;
 let completeIndentLevels: any = [];
 let materiaCoordinatePreference = Number.parseInt(document.querySelector('meta[name=materia-preference]').getAttribute('content')) || 0;
@@ -80,8 +86,6 @@ const MateriaCell = DropTarget("materia-cells", {
         const previousSelected = Object.assign({}, component.decoratedRef.current.state.selected);
         const droppedOn = monitor.getItem();
 
-        console.log(previousSelected, droppedOn);
-
         component.decoratedRef.current.setState({
             swapping: true
         }, () => {
@@ -96,12 +100,16 @@ const MateriaCell = DropTarget("materia-cells", {
     },
     endDrag(props: any, monitor: any, component: any) {
         if (monitor.didDrop()) {
-            console.log('endDrag', props, monitor.getDropResult(), component);
+            let result = monitor.getDropResult();
 
             component.setState({
                 swapping: true
             }, () => {
-                component.onChange(monitor.getDropResult());
+                if (typeof result.value === 'undefined') { // misbehaving on empty cells
+                    result = emptyMateriaChoice;
+                }
+
+                component.onChange(result);
             });
 
             setTimeout(() => {
@@ -113,7 +121,7 @@ const MateriaCell = DropTarget("materia-cells", {
     constructor(props: any) {
         super(props);
 
-        let val = null;
+        let val = 0;
         if (typeof this.props.data.materia !== 'undefined') {
             val = materiaMatch.filter((m: any) => m.value === this.props.data.materia.id)[0];
         }
@@ -147,7 +155,7 @@ const MateriaCell = DropTarget("materia-cells", {
 
         axios.default.patch(
             `/api/loadouts/${loadoutId}/items/${this.props.data.id}`,
-            {materia: selected.value},
+            {materia: selected.value === 0 ? null : selected.value},
         )
             .then(() => {
                 this.setState({
@@ -276,8 +284,8 @@ class Table extends React.Component<{ id: any }, { data: any, materias: any }> {
             .then((res: any) => {
                 axios.default.get('/api/materia')
                     .then((res2: any) => {
-                        materiaChoices = [];
-                        materiaMatch = [];
+                        materiaChoices = [emptyMateriaChoice];
+                        materiaMatch = [emptyMateriaChoice];
 
                         for (const group of res2.data) {
                             let options = [];

@@ -6,6 +6,11 @@ import Select from 'react-select';
 
 import {Accordion, Button, Card} from 'react-bootstrap';
 
+import {DndProvider, DragSource, DropTarget} from 'react-dnd';
+import Backend from 'react-dnd-html5-backend';
+
+import {Subject, Subscription} from 'rxjs';
+
 const characters: any = {
     c: 'Cloud',
     b: 'Barret',
@@ -19,6 +24,8 @@ let materiaMatch: any = [];
 let loadoutId: any = null;
 let completeIndentLevels: any = [];
 let materiaCoordinatePreference = Number.parseInt(document.querySelector('meta[name=materia-preference]').getAttribute('content')) || 0;
+
+const refreshRequestObservable = new Subject();
 
 class MateriaCoordinateDisplay extends React.Component<{ character: string, row: number, col: number }, any> {
     render() {
@@ -42,7 +49,59 @@ class MateriaCoordinateDisplay extends React.Component<{ character: string, row:
     }
 }
 
-class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
+const collectSource = (connect: any, monitor: any) => {
+    return {
+        connectDragSource: connect.dragSource(),
+        connectDragPreview: connect.dragPreview(),
+        isDragging: monitor.isDragging()
+    };
+}
+
+const collectTarget = (connect: any, monitor: any) => {
+    return {
+        connectDropTarget: connect.dropTarget(),
+        isOver: monitor.isOver(),
+        isOverCurrent: monitor.isOver({shallow: true}),
+        canDrop: monitor.canDrop(),
+        itemType: monitor.getItemType(),
+    };
+}
+
+const MateriaCell = DropTarget("materia-cells", {
+    drop(props: any, monitor: any, component: any) {
+        const previousSelected = Object.assign({}, component.decoratedRef.current.state.selected);
+        const droppedOn = monitor.getItem();
+
+        console.log(previousSelected, droppedOn);
+
+        component.decoratedRef.current.setState({
+            swapping: true
+        }, () => {
+            component.decoratedRef.current.onChange(droppedOn.selected);
+        });
+
+        return previousSelected;
+    }
+}, collectTarget)(DragSource("materia-cells", {
+    beginDrag(props: any, monitor: any, component: any) {
+        return {selected: component.state.selected};
+    },
+    endDrag(props: any, monitor: any, component: any) {
+        if (monitor.didDrop()) {
+            console.log('endDrag', props, monitor.getDropResult(), component);
+
+            component.setState({
+                swapping: true
+            }, () => {
+                component.onChange(monitor.getDropResult());
+            });
+
+            setTimeout(() => {
+                refreshRequestObservable.next(true);
+            }, 500);
+        }
+    }
+}, collectSource)(class extends React.Component<any, any> {
     constructor(props: any) {
         super(props);
 
@@ -55,6 +114,7 @@ class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
             editing: false,
             locked: false,
             errored: false,
+            swapping: false,
             selected: val
         }
     }
@@ -65,12 +125,14 @@ class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
                 editing: true
             });
         }
-    }
+    };
 
     onChange = (selected: any) => {
+        console.log(this.props.data.col, selected);
         let oldSelected = this.state.selected;
         this.setState({
             selected: selected,
+            editing: true,
             locked: true,
             errored: false
         });
@@ -83,17 +145,19 @@ class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
                 this.setState({
                     errored: false,
                     locked: false,
-                    editing: false
+                    editing: false,
+                    swapping: false
                 })
             })
             .catch(() => {
                 this.setState({
                     errored: true,
                     locked: false,
+                    swapping: false,
                     selected: oldSelected
                 });
             });
-    }
+    };
 
     render() {
         let content;
@@ -117,10 +181,10 @@ class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
                 value={this.state.selected}
                 onChange={this.onChange}
                 options={materiaChoices}
-                defaultMenuIsOpen={true}
+                defaultMenuIsOpen={!this.state.swapping}
                 isDisabled={this.state.locked}
                 isLoading={this.state.locked}
-                autoFocus={true}
+                autoFocus={!this.state.swapping}
                 styles={style}
             />;
         } else {
@@ -131,7 +195,7 @@ class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
             }
         }
 
-        return <td
+        return this.props.connectDropTarget(this.props.connectDragSource(<td
             className={['materia', `materia-${this.state.selected?.color}`].join(' ')}
             onClick={() => {
                 this.onClick()
@@ -145,9 +209,9 @@ class MateriaCell extends React.Component<{ data: any, materias: any }, any> {
                     {content}
                 </div>
             </div>
-        </td>
+        </td>));
     }
-}
+}));
 
 class LayoutRow extends React.Component<{ data: any, materias: any }, any> {
     render() {
@@ -255,7 +319,9 @@ class Table extends React.Component<{ id: any }, { data: any, materias: any }> {
         }
 
         return <div>
-            {layouts}
+            <DndProvider backend={Backend}>
+                {layouts}
+            </DndProvider>
         </div>;
     }
 }
@@ -438,6 +504,8 @@ class ChangeDisplaySolution extends React.Component<{ solution: any, favorite?: 
 }
 
 class ChangeDisplay extends React.Component<{ loadoutId: number, favorite: string }, any> {
+    private subscription: Subscription;
+
     constructor(props: any) {
         super(props);
 
@@ -474,6 +542,13 @@ class ChangeDisplay extends React.Component<{ loadoutId: number, favorite: strin
 
     componentDidMount() {
         this.reload();
+        this.subscription = refreshRequestObservable.subscribe(() => {
+            this.reload();
+        });
+    }
+
+    componentWillUnmount() {
+        this.subscription.unsubscribe();
     }
 
     render() {

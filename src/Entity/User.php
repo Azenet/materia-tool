@@ -49,6 +49,7 @@ class User implements UserInterface {
 	public const MATERIA_COORDINATES_PREFERENCE_LETTER = 1;
 	public const MATERIA_COORDINATES_PREFERENCE_CHARACTER_ROW_NUMBER = 2;
 	public const MATERIA_COORDINATES_PREFERENCE_CHARACTER_LETTER = 3;
+	public const MATERIA_COORDINATES_PREFERENCE_MV = 4;
 	/**
 	 * @ORM\Column(type="integer")
 	 */

@@ -31,18 +31,26 @@ class MateriaCoordinateDisplay extends React.Component<{ character: string, row:
     render() {
         let value;
 
-        if (materiaCoordinatePreference % 2 === 0) {
-            value = `${String.fromCharCode(65 + this.props.row)}${this.props.col + 1}`;
-        } else {
+        if (materiaCoordinatePreference === 4) {
             if (this.props.row === 0) {
-                value = this.props.col + 1;
+                value = this.props.col < 4 ? this.props.col + 1 : String.fromCharCode(61 + this.props.col);
             } else {
-                value = String.fromCharCode(65 + this.props.col);
+                value = this.props.col + 5;
             }
-        }
+        } else {
+            if (materiaCoordinatePreference % 2 === 0) {
+                value = `${String.fromCharCode(65 + this.props.row)}${this.props.col + 1}`;
+            } else {
+                if (this.props.row === 0) {
+                    value = this.props.col + 1;
+                } else {
+                    value = String.fromCharCode(65 + this.props.col);
+                }
+            }
 
-        if (materiaCoordinatePreference >= 2) {
-            value = this.props.character.toUpperCase() + value;
+            if (materiaCoordinatePreference >= 2) {
+                value = this.props.character.toUpperCase() + value;
+            }
         }
 
         return <span>{value}</span>;

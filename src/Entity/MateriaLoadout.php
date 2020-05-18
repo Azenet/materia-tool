@@ -70,6 +70,12 @@ class MateriaLoadout {
 	 */
 	private $startCharacter;
 
+	/**
+	 * @ORM\Column(type="text", nullable=true)
+	 * @Groups({"notes"})
+	 */
+	private $notes;
+
 	public function __construct() {
 		$this->children = new ArrayCollection();
 		$this->items    = new ArrayCollection();
@@ -217,6 +223,16 @@ class MateriaLoadout {
 
 	public function setStartCharacter(?string $startCharacter): self {
 		$this->startCharacter = $startCharacter;
+
+		return $this;
+	}
+
+	public function getNotes(): ?string {
+		return $this->notes;
+	}
+
+	public function setNotes(?string $notes): self {
+		$this->notes = $notes;
 
 		return $this;
 	}

@@ -9,11 +9,13 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Validator\Constraints\Count;
+use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
 class MateriaLoadoutType extends AbstractType {
@@ -74,6 +76,16 @@ class MateriaLoadoutType extends AbstractType {
 					'Aerith' => 'a',
 				],
 				'placeholder' => 'Whoever is first in the current party order'
+			])
+			->add('notes', TextareaType::class, [
+				'attr'        => [
+					'rows' => '10'
+				],
+				'required'    => false,
+				'constraints' => [
+					new Length(['max' => 65535])
+				],
+				'help'        => 'Markdown is allowed.'
 			]);
 	}
 

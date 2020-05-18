@@ -62,6 +62,15 @@ class ApiController extends AbstractFOSRestController {
 	}
 
 	/**
+	 * @Rest\View(serializerGroups={"notes"})
+	 * @IsGranted("ROLE_USER")
+	 * @IsGranted("LOADOUT_VIEW", subject="loadout")
+	 */
+	public function getLoadoutNotesAction(MateriaLoadout $loadout) {
+		return $loadout;
+	}
+
+	/**
 	 * @Rest\View(serializerGroups={"listing"})
 	 */
 	public function getMateriaAction() {

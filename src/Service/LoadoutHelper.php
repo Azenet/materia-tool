@@ -25,6 +25,10 @@ class LoadoutHelper {
 		$new
 			->setOwner($origin->getOwner())
 			->setName($origin->getName() . ' - copy')
+			->setNotes($origin->getNotes())
+			->setStartCharacter($origin->getStartCharacter())
+			->setPartyOrder($origin->getPartyOrder())
+			->setPreferredChangeKey($origin->getPreferredChangeKey())
 			->setParent($origin);
 
 		$origin->addChild($new);
@@ -652,6 +656,8 @@ class LoadoutHelper {
 			->setName($src->getName())
 			->setOwner($user)
 			->setPartyOrder($src->getPartyOrder())
+			->setStartCharacter($src->getStartCharacter())
+			->setNotes($src->getNotes())
 			->setPreferredChangeKey($src->getPreferredChangeKey());
 
 		$this->addChildLoadouts($src, $loadout);
@@ -680,7 +686,9 @@ class LoadoutHelper {
 			$cl
 				->setName($child->getName())
 				->setOwner($to->getOwner())
+				->setNotes($child->getNotes())
 				->setPartyOrder($child->getPartyOrder())
+				->setStartCharacter($child->getStartCharacter())
 				->setPreferredChangeKey($child->getPreferredChangeKey());
 
 			$to->addChild($cl);
@@ -713,6 +721,7 @@ class LoadoutHelper {
 			->setOwner($owner)
 			->setParent($parent)
 			->setName($current->getName())
+			->setNotes($current->getNotes())
 			->setPreferredChangeKey($current->getPreferredChangeKey())
 			->setPartyOrder($current->getPartyOrder())
 			->setStartCharacter($current->getStartCharacter());

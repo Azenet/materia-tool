@@ -11,6 +11,8 @@ import Backend from 'react-dnd-html5-backend';
 
 import {Subject, Subscription} from 'rxjs';
 
+import * as marked from 'marked';
+
 const characters: any = {
     c: 'Cloud',
     b: 'Barret',
@@ -432,21 +434,22 @@ class ChildLoadoutListRow extends React.Component<{ data: any, active: number, i
 
         // <span style={{paddingLeft: (this.props.indent * 20) + 'px', width: 0, display: 'inline-block'}}>&nbsp;</span>
         let indents = [];
+        let j = 0;
         for (let i = 0; i < this.props.indent; i++) {
             if (typeof completeIndentLevels[i] !== 'undefined') {
-                indents.push(<span className={"indent indent-last"}>&nbsp;</span>)
+                indents.push(<span key={j++} className={"indent indent-last"}>&nbsp;</span>)
                 continue;
             }
 
             if (i === this.props.indent - 1) {
                 if (this.props.lastInGroup === true) {
                     completeIndentLevels[this.props.indent - 1] = true;
-                    indents.push(<span className={"indent indent-last"}>&#x2514;</span>)
+                    indents.push(<span key={j++} className={"indent indent-last"}>&#x2514;</span>)
                 } else {
-                    indents.push(<span className={"indent indent-last"}>&#x251C;</span>)
+                    indents.push(<span key={j++} className={"indent indent-last"}>&#x251C;</span>)
                 }
             } else {
-                indents.push(<span className={"indent"}>&#x2502;</span>)
+                indents.push(<span key={j++} className={"indent"}>&#x2502;</span>)
             }
         }
 
@@ -691,6 +694,33 @@ class ChangeDisplay extends React.Component<{ loadoutId: number, favorite: strin
     }
 }
 
+class Notes extends React.Component<any, any> {
+    constructor(props: any) {
+        super(props);
+
+        this.state = {
+            data: null
+        }
+    }
+
+    componentDidMount() {
+        axios.default.get(`/api/loadouts/${this.props.loadoutId}/notes`)
+            .then((res: any) => {
+                this.setState({
+                    data: res.data,
+                });
+            });
+    }
+
+    render() {
+        if (this.state.data === null) {
+            return <div>Loading</div>;
+        }
+
+        return <div dangerouslySetInnerHTML={{__html: marked(this.state.data?.notes || '')}}></div>
+    }
+}
+
 let table = document.getElementById('table');
 
 class LoadoutSidebar extends React.Component<any, any> {
@@ -698,7 +728,7 @@ class LoadoutSidebar extends React.Component<any, any> {
         let loadoutId = Number.parseInt(table.getAttribute('data-id'));
         let fav = document.getElementById('sidebar').getAttribute('data-fav')
 
-        return <Accordion defaultActiveKey="1">
+        return <Accordion defaultActiveKey="2">
             <Card>
                 <Card.Header>
                     <Accordion.Toggle as={Button} variant="link" eventKey="0">
@@ -714,10 +744,22 @@ class LoadoutSidebar extends React.Component<any, any> {
             <Card>
                 <Card.Header>
                     <Accordion.Toggle as={Button} variant="link" eventKey="1">
-                        Materia changelist
+                        Notes
                     </Accordion.Toggle>
                 </Card.Header>
                 <Accordion.Collapse eventKey="1">
+                    <Card.Body>
+                        <Notes loadoutId={loadoutId} />
+                    </Card.Body>
+                </Accordion.Collapse>
+            </Card>
+            <Card>
+                <Card.Header>
+                    <Accordion.Toggle as={Button} variant="link" eventKey="2">
+                        Materia changelist
+                    </Accordion.Toggle>
+                </Card.Header>
+                <Accordion.Collapse eventKey="2">
                     <Card.Body>
                         <ChangeDisplay loadoutId={loadoutId} favorite={fav} />
                     </Card.Body>

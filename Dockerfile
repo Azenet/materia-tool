@@ -37,7 +37,7 @@ RUN yarn encore production
 RUN a2enmod rewrite
 RUN sed -i 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-#RUN php /composer.phar dump-autoload --no-dev --classmap-authoritative
+RUN php /composer.phar dump-autoload --no-dev --classmap-authoritative
 
 RUN mkdir -p /app/var/{cache,log} && chown 33:33 /app/var
 

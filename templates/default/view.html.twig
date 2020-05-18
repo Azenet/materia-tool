@@ -12,9 +12,7 @@
 		<div class="col-auto">
 			<div class="row">
 				<div class="col-auto">
-					{{ form_start(delete) }}
-					<button type="submit" class="btn btn-danger" onclick="return confirm('This will delete this loadout if it has no loadouts depending on it. THIS CANNOT BE UNDONE.');">Delete loadout</button>
-					{{ form_end(delete) }}
+					<a href="{{ path('default_delete_loadout', {loadout: loadout.id}) }}" class="btn btn-danger">Delete loadout</a>
 				</div>
 				<div class="col-auto">
 					{{ form_start(clone) }}

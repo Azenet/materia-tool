@@ -10,10 +10,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 class DefaultController extends AbstractController {
 	private EntityManagerInterface $em;
@@ -80,24 +81,6 @@ class DefaultController extends AbstractController {
 	 * @IsGranted("LOADOUT_VIEW", subject="loadout")
 	 */
 	public function view(MateriaLoadout $loadout, Request $request, FormFactoryInterface $ffi) {
-		$deleteForm = $ffi->createNamedBuilder('delete')->getForm();
-
-		$deleteForm->handleRequest($request);
-		if ($deleteForm->isSubmitted() && $deleteForm->isValid()) {
-			if (!$loadout->getChildren()->isEmpty()) {
-				$this->addFlash('warning', 'Cannot delete loadout, please delete children first. Sorry if this is a pain, it is there to prevent data loss (feel free to tag me on discord if you *really* need to do this).');
-
-				return new RedirectResponse($request->getRequestUri());
-			}
-
-			$this->em->remove($loadout);
-			$this->em->flush();
-
-			$this->addFlash('warning', sprintf('Deleted loadout \'%s\'.', $loadout->getName()));
-
-			return $this->redirectToRoute('default_index');
-		}
-
 		$cloneForm = $ffi->createNamedBuilder('clone')->getForm();
 
 		$cloneForm->handleRequest($request);
@@ -111,9 +94,59 @@ class DefaultController extends AbstractController {
 
 		return $this->render('default/view.html.twig', [
 			'loadout' => $loadout,
-			'delete'  => $deleteForm->createView(),
 			'clone'   => $cloneForm->createView()
 		]);
+	}
+
+	/**
+	 * @Route("/delete/{loadout}", name="default_delete_loadout")
+	 * @IsGranted("ROLE_USER")
+	 * @IsGranted("LOADOUT_DELETE", subject="loadout")
+	 */
+	public function delete(MateriaLoadout $loadout, Request $request) {
+		$deleteForm = $this->createFormBuilder()
+			->add('checkbox', CheckboxType::class, [
+				'label'       => 'I understand this action cannot be undone.',
+				'required'    => true,
+				'constraints' => [
+					new NotBlank()
+				]
+			]);
+
+		$deleteForm = $deleteForm->getForm();
+		$deleteForm->handleRequest($request);
+
+		if ($deleteForm->isSubmitted() && $deleteForm->isValid()) {
+			$this->em->remove($loadout);
+			$this->em->flush();
+
+			$this->addFlash('warning', sprintf('Deleted loadout \'%s\'.', $loadout->getName()));
+
+			return $this->redirectToRoute('default_index');
+		}
+
+		$children = [];
+		foreach($loadout->getChildren() as $child) {
+			$this->getLeveledChildren($child, $children);
+		}
+
+		return $this->render('default/delete.html.twig', [
+			'loadout'  => $loadout,
+			'children' => $children,
+			'form'     => $deleteForm->createView()
+		]);
+	}
+
+	private function getLeveledChildren(MateriaLoadout $parent, &$result, $level = 0) {
+		if (!isset($result[$level])) {
+			$result[$level] = [];
+		}
+
+		$result[$level][] = $parent;
+
+		foreach ($parent->getChildren() as $child) {
+			$this->getLeveledChildren($child, $result, $level + 1);
+		}
 	}
 
 	/**

@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+	<div class="container">
+		<div class="row">
+			<div class="col">
+				<div class="alert alert-danger">
+						{% if children|length >0 %}
+							The loadout <b>{{ loadout.name }}</b> and the following children will be deleted permanently:<br />
+							{% for level, childs in children %}
+								{% for child in childs %}
+									{% for _ in 0..level %}
+										<span>&nbsp;</span>
+									{% endfor %}
+									<b>{{ child.name }}</b>
+									{% if not loop.last or not loop.parent.loop.last %}<br />{% endif %}
+								{% endfor %}
+							{% endfor %}
+						{% else %}
+							The loadout <b>{{ loadout.name }}</b> will be deleted permanently.
+						{% endif %}
+				</div>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col">
+				{{ form_start(form) }}
+				{{ form_rest(form) }}
+				<button type="submit" class="btn btn-danger">Delete above loadouts</button>
+				{{ form_end(form) }}
+			</div>
+		</div>
+	</div>
+{% endblock %}

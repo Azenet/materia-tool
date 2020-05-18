@@ -16,7 +16,7 @@ class MateriaLoadoutVoter extends Voter {
 	}
 
 	protected function supports($attribute, $subject) {
-		return in_array($attribute, ['LOADOUT_VIEW', 'LOADOUT_EDIT'])
+		return in_array($attribute, ['LOADOUT_VIEW', 'LOADOUT_EDIT', 'LOADOUT_DELETE'])
 			   && $subject instanceof MateriaLoadout;
 	}
 

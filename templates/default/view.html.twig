@@ -15,6 +15,9 @@
 					<a href="{{ path('default_delete_loadout', {loadout: loadout.id}) }}" class="btn btn-danger">Delete loadout</a>
 				</div>
 				<div class="col-auto">
+					<a href="{{ path('default_auto_loadout', {loadout: loadout.root.id}) }}" class="btn btn-info">View auto routing</a>
+				</div>
+				<div class="col-auto">
 					{{ form_start(clone) }}
 					<button type="submit" class="btn btn-outline-primary">Create changes from this loadout</button>
 					{{ form_end(clone) }}

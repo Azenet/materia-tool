@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+	<div class="container">
+		<div class="row">
+			<div class="col">
+				<div class="alert alert-warning">
+					<i class="fas fa-exclamation-triangle"></i>
+					This is really beta and might break/not output the best changes/etc. Please double-check that the end result is correct and what you expect!
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<div id="display" data-id="{{ loadout.id }}"></div>
+			</div>
+		</div>
+	</div>
+
+	<meta name="materia-preference" content="{{ app.user.materiaCoordinatesPreference }}" />
+{% endblock %}
+
+{% block javascripts %}
+	{{ parent() }}
+	{{ encore_entry_script_tags('table') }}
+{% endblock %}

@@ -127,7 +127,7 @@ class DefaultController extends AbstractController {
 
 		$children = [];
 		foreach($loadout->getChildren() as $child) {
-			$this->getLeveledChildren($child, $children);
+			$this->lh->getLeveledChildren($child, $children);
 		}
 
 		return $this->render('default/delete.html.twig', [
@@ -137,16 +137,20 @@ class DefaultController extends AbstractController {
 		]);
 	}
 
-	private function getLeveledChildren(MateriaLoadout $parent, &$result, $level = 0) {
-		if (!isset($result[$level])) {
-			$result[$level] = [];
+	/**
+	 * @Route("/auto/{loadout}", name="default_auto_loadout")
+	 * @IsGranted("ROLE_USER")
+	 * @IsGranted("LOADOUT_EDIT", subject="loadout")
+	 */
+	public function auto(MateriaLoadout $loadout) {
+		$children = [];
+		foreach($loadout->getChildren() as $child) {
+			$this->lh->getLeveledChildren($child, $children);
 		}
 
-		$result[$level][] = $parent;
-
-		foreach ($parent->getChildren() as $child) {
-			$this->getLeveledChildren($child, $result, $level + 1);
-		}
+		return $this->render('default/auto.html.twig', [
+			'loadout' => $loadout
+		]);
 	}
 
 	/**

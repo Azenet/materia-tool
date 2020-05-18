@@ -5,15 +5,33 @@
 		<div class="row">
 			<div class="col-12">
 				{% if is_granted('ROLE_USER') %}
-					{% for ml in loadouts|filter(m => m.parent is same as(null)) %}
-						<p><a href="{{ path('default_view_loadout', {loadout: ml.id}) }}">{{ ml.name }}</a></p>
-					{% endfor %}
-					<p>
-						{{ form_start(demoform) }}
-						<a href="{{ path('default_add_loadout') }}" class="btn btn-primary">Add new base materia loadout</a>
-						<button type="submit" class="btn btn-outline-secondary">Add example base loadout</button>
-						{{ form_end(demoform) }}
-					</p>
+					<div class="row">
+						<div class="col">
+							<div class="alert alert-info">
+								<i class="fas fa-info-circle"></i>
+								Welcome! To use this tool, either create a base materia loadout or click "Add example base loadout" to add a copy of an example.<br />
+								Latest changes:<br />
+								<ul>
+									<li>Added drag/drop support for materias</li>
+									<li>Added selection of which party member the cursor is on (if you open the materia loadout screen from their item view)</li>
+									<li>Beta: Added automatic routing of materias. Pin materias that should not be moved for that mode.</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col">
+							{% for ml in loadouts|filter(m => m.parent is same as(null)) %}
+								<p><a href="{{ path('default_view_loadout', {loadout: ml.id}) }}">{{ ml.name }}</a></p>
+							{% endfor %}
+							<p>
+								{{ form_start(demoform) }}
+								<a href="{{ path('default_add_loadout') }}" class="btn btn-primary">Add new base materia loadout</a>
+								<button type="submit" class="btn btn-outline-secondary">Add example base loadout</button>
+								{{ form_end(demoform) }}
+							</p>
+						</div>
+					</div>
 				{% else %}
 					<a href="{{ path('default_login') }}">Login with Twitch</a>
 				{% endif %}

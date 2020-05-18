@@ -4,7 +4,7 @@ import * as axios from "axios";
 
 import Select from 'react-select';
 
-import {Accordion, Button, Card} from 'react-bootstrap';
+import {Accordion, Button, Card, Form} from 'react-bootstrap';
 
 import {DndProvider, DragSource, DropTarget} from 'react-dnd';
 import Backend from 'react-dnd-html5-backend';
@@ -89,33 +89,41 @@ const collectTarget = (connect: any, monitor: any) => {
 
 const MateriaCell = DropTarget("materia-cells", {
     drop(props: any, monitor: any, component: any) {
-        const previousSelected = Object.assign({}, component.decoratedRef.current.state.selected);
+        const previousSelected = Object.assign({}, component.decoratedRef.current.state);
         const droppedOn = monitor.getItem();
+        const pinned = !!droppedOn.pinned;
 
         component.decoratedRef.current.setState({
             swapping: true
         }, () => {
-            component.decoratedRef.current.onChange(droppedOn.selected);
+            component.decoratedRef.current.onChange(droppedOn.selected).then(() => {
+                component.decoratedRef.current.doCheckboxChange(pinned);
+            });
         });
 
         return previousSelected;
     }
 }, collectTarget)(DragSource("materia-cells", {
     beginDrag(props: any, monitor: any, component: any) {
-        return {selected: component.state.selected};
+        return {selected: component.state.selected, pinned: !!component.state.raw?.pinned};
     },
     endDrag(props: any, monitor: any, component: any) {
         if (monitor.didDrop()) {
             let result = monitor.getDropResult();
+            let pinned = !!result.raw?.pinned;
+            console.log(result);
 
             component.setState({
                 swapping: true
             }, () => {
-                if (typeof result.value === 'undefined') { // misbehaving on empty cells
+                if (typeof result.selected?.value === 'undefined') { // misbehaving on empty cells
                     result = emptyMateriaChoice;
+                    pinned = false;
                 }
 
-                component.onChange(result);
+                component.onChange(result.selected).then(() => {
+                    component.doCheckboxChange(pinned);
+                });
             });
 
             setTimeout(() => {
@@ -137,7 +145,8 @@ const MateriaCell = DropTarget("materia-cells", {
             locked: false,
             errored: false,
             swapping: false,
-            selected: val
+            selected: val,
+            raw: this.props.data
         }
     }
 
@@ -149,8 +158,7 @@ const MateriaCell = DropTarget("materia-cells", {
         }
     };
 
-    onChange = (selected: any) => {
-        console.log(this.props.data.col, selected);
+    onChange = (selected: any): Promise<void> => {
         let oldSelected = this.state.selected;
         this.setState({
             selected: selected,
@@ -159,16 +167,17 @@ const MateriaCell = DropTarget("materia-cells", {
             errored: false
         });
 
-        axios.default.patch(
+        return axios.default.patch(
             `/api/loadouts/${loadoutId}/items/${this.props.data.id}`,
             {materia: selected.value === 0 ? null : selected.value},
         )
-            .then(() => {
+            .then((res: any) => {
                 this.setState({
                     errored: false,
                     locked: false,
                     editing: false,
-                    swapping: false
+                    swapping: false,
+                    raw: res.data
                 })
             })
             .catch(() => {
@@ -180,6 +189,33 @@ const MateriaCell = DropTarget("materia-cells", {
                 });
             });
     };
+
+    onCheckboxChange = (evt: any): Promise<void> => {
+        return this.doCheckboxChange(evt.target.checked);
+    }
+
+    private doCheckboxChange(pinned: boolean) {
+        return axios.default.patch(
+            `/api/loadouts/${loadoutId}/items/${this.props.data.id}`,
+            {pinned: pinned},
+        )
+            .then((res: any) => {
+                this.setState({
+                    errored: false,
+                    locked: false,
+                    editing: false,
+                    swapping: false,
+                    raw: res.data
+                })
+            })
+            .catch(() => {
+                this.setState({
+                    errored: true,
+                    locked: false,
+                    swapping: false,
+                });
+            });
+    }
 
     render() {
         let content;
@@ -199,21 +235,46 @@ const MateriaCell = DropTarget("materia-cells", {
                 }
             };
 
-            content = <Select
-                value={this.state.selected}
-                onChange={this.onChange}
-                options={materiaChoices}
-                defaultMenuIsOpen={!this.state.swapping}
-                isDisabled={this.state.locked}
-                isLoading={this.state.locked}
-                autoFocus={!this.state.swapping}
-                styles={style}
-            />;
+            content = <div className="col">
+                <Select
+                    value={this.state.selected}
+                    onChange={this.onChange}
+                    options={materiaChoices}
+                    defaultMenuIsOpen={!this.state.swapping}
+                    isDisabled={this.state.locked}
+                    isLoading={this.state.locked}
+                    autoFocus={!this.state.swapping}
+                    styles={style}
+                />
+                <Form.Check
+                    checked={!!this.state.raw.pinned}
+                    onChange={this.onCheckboxChange}
+                    disabled={this.state.locked}
+                    label="Pinned"
+                    type="checkbox"
+                />
+            </div>;
         } else {
             if (this.state.selected !== null) {
-                content = <span className="materia-text">
-                    {this.state.selected.label}
-                </span>
+                const content1 = <div className="col">
+                    <span className="materia-text">
+                        {this.state.selected.label}
+                    </span>
+                </div>
+
+                let content2;
+                if (this.state.raw?.pinned === true) {
+                    content2 = <div className="col-auto ml-auto">
+                        <span className="materia-pinned">
+                            <i className="fas fa-thumbtack" />
+                        </span>
+                    </div>
+                }
+
+                content = <React.Fragment>
+                    {content1}
+                    {content2}
+                </React.Fragment>;
             }
         }
 
@@ -227,9 +288,7 @@ const MateriaCell = DropTarget("materia-cells", {
                     <MateriaCoordinateDisplay character={this.props.data.charName} row={this.props.data.row} col={this.props.data.col} />
                     &nbsp;
                 </div>
-                <div className="col">
-                    {content}
-                </div>
+                {content}
             </div>
         </td>));
     }
@@ -609,10 +668,12 @@ class ChangeDisplay extends React.Component<{ loadoutId: number, favorite: strin
                 {fav}
                 <div className="row mb-2">
                     <div className="col">
-                    {this.state.data.minimumDistance} D-pad presses
+                        {this.state.data.minimumDistance} D-pad presses
                     </div>
                     <div className="col-auto">
-                        <Button onClick={() => {this.reload()}} size="sm">refresh</Button>
+                        <Button onClick={() => {
+                            this.reload()
+                        }} size="sm">refresh</Button>
                     </div>
                 </div>
                 <div>
@@ -630,9 +691,11 @@ class ChangeDisplay extends React.Component<{ loadoutId: number, favorite: strin
     }
 }
 
+let table = document.getElementById('table');
+
 class LoadoutSidebar extends React.Component<any, any> {
     render() {
-        let loadoutId = Number.parseInt(document.getElementById('table').getAttribute('data-id'));
+        let loadoutId = Number.parseInt(table.getAttribute('data-id'));
         let fav = document.getElementById('sidebar').getAttribute('data-fav')
 
         return <Accordion defaultActiveKey="1">
@@ -664,12 +727,250 @@ class LoadoutSidebar extends React.Component<any, any> {
     }
 }
 
-ReactDOM.render(
-    <Table id={document.getElementById('table').getAttribute('data-id')} />,
-    document.getElementById('table')
-);
+class RDRLShortMoveDisplay extends React.Component<any, any> {
+    render() {
+        return <span>
+            {characters[this.props.move.from.charName]}&nbsp;
+            <MateriaCoordinateDisplay
+                character={this.props.move.from.charName}
+                row={this.props.move.from.row}
+                col={this.props.move.from.col} />&nbsp;
+            (
+            <span style={{color: this.props.move.from.materia?.type?.color}}>
+                {this.props.move.from.materia?.name}
+            </span>
+            )
+            &#x27fa;&nbsp;
+            {characters[this.props.move.to.charName]}&nbsp;
+            <MateriaCoordinateDisplay
+                character={this.props.move.to.charName}
+                row={this.props.move.to.row}
+                col={this.props.move.to.col} />&nbsp;
+            (
+            <span style={{color: this.props.move.to.materia?.type?.color}}>
+                {this.props.move.to.materia?.name}
+            </span>
+            )
+        </span>
+    }
+}
 
-ReactDOM.render(
-    <LoadoutSidebar />,
-    document.getElementById('sidebar')
-);
+class RecursiveDiffResolverLeaf extends React.Component<any, any> {
+    constructor(props: any) {
+        super(props);
+
+        this.state = {
+            data: null,
+            tree: null,
+            errored: false
+        }
+    }
+
+    componentDidMount() {
+        axios.default.get(
+            `/api/loadouts/diff/${this.props.pid}/${this.props.id}`,
+        )
+            .then((res: any) => {
+                this.setState({
+                    data: res.data
+                });
+
+                this.props.eotcb();
+
+                axios.default.get(
+                    `/api/loadouts/${this.props.id}/tree`,
+                )
+                    .then((res: any) => {
+                        this.setState({
+                            tree: res.data
+                        });
+                    })
+                    .catch(() => {
+                        this.setState({
+                            data: null,
+                            errored: true
+                        });
+                    });
+            })
+            .catch(() => {
+                this.setState({
+                    errored: true
+                });
+            });
+    }
+
+    render() {
+        if (this.state.errored) {
+            return <div>Something went wrong.</div>;
+        }
+
+        if (this.state.data === null || this.state.tree === null) {
+            return <div>Loading</div>;
+        }
+
+        const found = this.state.data.solution
+
+        let solution = <div style={{color: 'red', paddingLeft: '20px'}}>No solution.</div>
+        let next;
+
+        if (found) {
+            let i = 0;
+            solution = <div style={{paddingLeft: '20px'}}>
+                <div>({found.distance} D-pad presses)</div>
+                {found.moves.map((m: any) => <div key={i++}>
+                    <RDRLShortMoveDisplay
+                        move={m} />
+                </div>)}
+            </div>
+
+            next = this.state.tree.children.map((m: any) => <RecursiveDiffResolverLeaf
+                key={m.loadout.id}
+                pid={this.state.data.cacheId}
+                id={m.loadout.id}
+                eotcb={this.props.eotcb} />);
+        }
+
+        return <div>
+            <div>
+                <b>{this.state.tree.loadout.name}</b>{solution}
+            </div>
+            <div>
+                {next}
+            </div>
+        </div>;
+    }
+}
+
+class RecursiveDiffResolver extends React.Component<any, any> {
+    constructor(props: any) {
+        super(props);
+
+        this.state = {
+            data: null,
+            tree: null,
+            finished: 0,
+            target: 0,
+            saving: false,
+            errored: false
+        };
+    }
+
+    componentDidMount() {
+        axios.default.get(
+            `/api/loadouts/diff/${this.props.id}/0`,
+        )
+            .then((res: any) => {
+                this.setState({
+                    data: res.data,
+                    target: res.data.target,
+                    finished: 1 //self
+                });
+
+                axios.default.get(
+                    `/api/loadouts/${this.props.id}/tree`,
+                )
+                    .then((res: any) => {
+                        this.setState({
+                            tree: res.data
+                        });
+                    })
+                    .catch((e: any) => {
+                        console.log(e);
+                        this.setState({
+                            data: null,
+                            errored: true
+                        });
+                    });
+            })
+            .catch(() => {
+                this.setState({
+                    errored: true
+                });
+            });
+    }
+
+    onFinishedRender = () => {
+        this.setState({
+            finished: this.state.finished + 1
+        });
+    }
+
+    onFinishedButtonClick = () => {
+        if (!this.state.saving) {
+            this.setState({
+                saving: true
+            });
+
+            axios.default.post(
+                `/api/loadouts/diff/to_loadout/${this.state.data.cacheId}`,
+            )
+                .then((res: any) => {
+                    window.location.href = `/view/${res.data.id}`;
+                })
+                .catch(() => {
+                    this.setState({
+                        errored: true
+                    });
+                });
+        }
+    }
+
+    render() {
+        if (this.state.errored) {
+            return <div>Something went wrong.</div>;
+        }
+
+        if (this.state.data === null || this.state.tree === null) {
+            return <div>Loading</div>;
+        }
+
+        let children = this.state.tree.children.map((m: any) => <RecursiveDiffResolverLeaf
+            key={m.loadout.id}
+            pid={this.state.data.cacheId}
+            id={m.loadout.id}
+            eotcb={this.onFinishedRender} />);
+
+        let finished;
+        if (this.state.finished === this.state.target) {
+            finished = <div>
+                <Button
+                    type="button"
+                    variant="primary"
+                    onClick={this.onFinishedButtonClick}
+                    disabled={this.state.saving}>
+                    Save this calculation as a new base loadout
+                </Button>
+            </div>
+        }
+
+        return <div>
+            <div>
+                <b>{this.state.tree.loadout.name}</b> (base)
+            </div>
+            <div>
+                {children}
+            </div>
+            {finished}
+        </div>;
+    }
+}
+
+if (table) {
+    ReactDOM.render(
+        <Table id={table.getAttribute('data-id')} />,
+        table
+    );
+
+    ReactDOM.render(
+        <LoadoutSidebar />,
+        document.getElementById('sidebar')
+    );
+}
+
+let display = document.getElementById('display');
+if (display) {
+    ReactDOM.render(
+        <RecursiveDiffResolver id={display.getAttribute('data-id')} />,
+        display
+    )
+}

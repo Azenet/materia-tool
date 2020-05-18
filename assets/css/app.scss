@@ -1,4 +1,6 @@
 @import "~bootstrap/scss/bootstrap";
+@import "~@fortawesome/fontawesome-free/scss/fontawesome";
+@import "~@fortawesome/fontawesome-free/scss/solid";
 
 $footer-height: 60px;
 
@@ -104,5 +106,9 @@ td.materia {
 
 	.materia-text {
 		font-weight: bold;
+	}
+
+	.materia-pinned {
+		padding-left: 1ch;
 	}
 }

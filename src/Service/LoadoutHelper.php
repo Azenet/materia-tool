@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Entity\Materia;
 use App\Entity\MateriaLoadout;
 use App\Entity\MateriaLoadoutItem;
 use App\Entity\User;
@@ -60,8 +61,11 @@ class LoadoutHelper {
 		$this->em->flush();
 	}
 
+	public const DIFF_MODE_MANUAL = 1;
+	public const DIFF_MODE_AUTO = 2;
+
 	// rewrote this function several times, if you're an algorithm genius and see a better way please open an issue
-	public function diffWithParent(MateriaLoadout $loadout, $timeLimit = 2) {
+	public function diffWithParent(MateriaLoadout $loadout, $timeLimit = 2, $diffMode = self::DIFF_MODE_MANUAL) {
 		if (null === $loadout->getParent()) {
 			throw new \InvalidArgumentException('No parent');
 		}
@@ -81,7 +85,12 @@ class LoadoutHelper {
 				if ($newItem->getCharName() === $oldItem->getCharName()
 					&& $newItem->getCol() === $oldItem->getCol()
 					&& $newItem->getRow() === $oldItem->getRow()
-					&& $newItem->getMateria() !== $oldItem->getMateria()) {
+					&& (
+						((null === $newItem->getMateria()) !== (null === $oldItem->getMateria()))
+						|| (
+							null !== $newItem->getMateria()
+							&& ($newItem->getMateria()->getId() !== $oldItem->getMateria()->getId())
+						))) {
 					$unmatched[] = $newItem;
 				}
 			}
@@ -102,14 +111,35 @@ class LoadoutHelper {
 			->setCol(0)
 			->setRow(0);
 
+		$possibilities = ['f' => [], 't' => []];
+
+		$first = true;
 		while (true) {
 			if (microtime(true) - $timeLimit > $start) {
-				$timeout = true;
+				$timeout = 'timed_out';
 				break;
 			}
 
+			if ($first) {
+				$first = false;
+			} else {
+				$discrep = 0;
+				foreach ($possibilities as $p) {
+					$discrep += count($p);
+					foreach ($p as $v) {
+						if ($v['has'] > 0 && count($v['tried']) === $v['has']) {
+							$discrep--;
+						}
+					}
+				}
+
+				if ($discrep === 0) {
+					$timeout = 'no_more_picks';
+					break;
+				}
+			}
+
 			// increment if a random pick is done when distance is equal, if == 0 after process then break
-			// TODO: infinite loop only broken by timeout, check whether all combinations have been tried instead?
 			$random = 0;
 
 			$moves  = [];
@@ -133,7 +163,7 @@ class LoadoutHelper {
 
 			while (!empty($tu)) {
 				if (microtime(true) - $timeLimit > $start) {
-					$timeout = true;
+					$timeout = 'timed_out_inner';
 					break 2;
 				}
 
@@ -153,8 +183,16 @@ class LoadoutHelper {
 				$lowest = array_keys($fd)[0];
 				$random += count($fd[$lowest]) - 1;
 
+				$i = random_int(0, count($fd[$lowest]) - 1);
+
+				if (!isset($possibilities['f'][$cursor->__toString()])) {
+					$possibilities['f'][$cursor->__toString()] = ['has' => count($fd[$lowest]), 'tried' => []];
+				}
+
+				$possibilities['f'][$cursor->__toString()]['tried'][$i] = true;
+
 				/** @var MateriaLoadoutItem $unmatchedItem */
-				$unmatchedItem = $fd[$lowest][random_int(0, count($fd[$lowest]) - 1)];
+				$unmatchedItem = $fd[$lowest][$i];
 
 				// find counterpart and current from self-tracked loadout
 				$fd      = [];
@@ -170,9 +208,15 @@ class LoadoutHelper {
 					if (null !== $mli->getMateria()
 						&& null !== $unmatchedItem->getMateria()
 						&& $mli->getMateria()->getId() === $unmatchedItem->getMateria()->getId()) {
+						if ($diffMode === self::DIFF_MODE_MANUAL) {
+							$ud = $tu;
+						} else {
+							$ud = $loadout->getParent()->getItems();
+						}
+
 						// check that this materia can be moved from this slot
-						foreach ($tu as $u) {
-							if ($u === $unmatchedItem) {
+						foreach ($ud as $u) {
+							if ($u === $unmatchedItem || $u->getPinned()) {
 								continue;
 							}
 
@@ -202,7 +246,15 @@ class LoadoutHelper {
 					$lowest = array_keys($fd)[0];
 					$random += count($fd[$lowest]) - 1;
 
-					$counterpart = $fd[$lowest][random_int(0, count($fd[$lowest]) - 1)];
+					$i = random_int(0, count($fd[$lowest]) - 1);
+
+					if (!isset($possibilities['t'][$cursor->__toString()])) {
+						$possibilities['t'][$cursor->__toString()] = ['has' => count($fd[$lowest]), 'tried' => []];
+					}
+
+					$possibilities['t'][$cursor->__toString()]['tried'][$i] = true;
+
+					$counterpart = $fd[$lowest][$i];
 				} else {
 					// inventory swap
 					$counterpart = new MateriaLoadoutItem();
@@ -211,6 +263,30 @@ class LoadoutHelper {
 						->setRow(0)
 						->setCol(0)
 						->setMateria($unmatchedItem->getMateria());
+				}
+
+				if ($diffMode === self::DIFF_MODE_AUTO) {
+					// need to check manually if the materia is still supposed to be there as $fd can be
+					// not empty for frequent materias (like MP up)
+					$found = false;
+					foreach ($loadout->getItems() as $item) {
+						if ($item->getMateria() !== null
+							&& $current->getMateria() !== null
+							&& $item->getMateria()->getId() === $current->getMateria()->getId()) {
+							$found = true;
+							break;
+						}
+					}
+
+					if (!$found) {
+						$counterpart = new MateriaLoadoutItem();
+
+						$counterpart
+							->setCharName('i')
+							->setRow(0)
+							->setCol(0)
+							->setMateria($unmatchedItem->getMateria());
+					}
 				}
 
 				$move = [
@@ -306,63 +382,78 @@ class LoadoutHelper {
 
 		foreach ($solutions as $k => $solution) {
 			$solution = unserialize(serialize($solution));
-			$hypo = new MateriaLoadout();
-			$hypo->getItems()->clear();
-			foreach ($loadout->getParent()->getItems() as $item) {
-				$mli = new MateriaLoadoutItem();
-				$mli
-					->setCharName($item->getCharName())
-					->setRow($item->getRow())
-					->setCol($item->getCol())
-					->setMateria($item->getMateria());
 
-				$hypo->addItem($mli);
+			$hypo = new MateriaLoadout();
+			$this->copyItems($loadout->getParent(), $hypo);
+
+			$this->simulate($solution, $hypo);
+
+			if ($diffMode === self::DIFF_MODE_MANUAL && $this->checkIdentical($loadout, $hypo)) {
+				continue;
 			}
 
-			foreach ($solution['moves'] as $m) {
-				$from = $to = null;
+			if ($diffMode === self::DIFF_MODE_AUTO) {
+				$key = static function (MateriaLoadoutItem $i) {
+					return sprintf('%s%d%d', $i->getCharName(), $i->getRow(), $i->getCol());
+				};
 
-				foreach ($hypo->getItems() as $i) {
-					foreach (['from', 'to'] as $v) {
-						if ($i->getCharName() === $m[$v]->getCharName()
-							&& $i->getRow() === $m[$v]->getRow()
-							&& $i->getCol() === $m[$v]->getCol()) {
-							$$v = $i;
+				$touched = [];
+				foreach ($solution['moves'] as $move) {
+					$touched[] = $key($move['from']);
+					$touched[] = $key($move['to']);
+				}
+
+				$touched = array_unique($touched);
+
+				$failed = false;
+
+				foreach ($touched as $t) {
+					if ($t[0] === 'i') {
+						continue;
+					}
+
+					$hypoItem = null;
+					foreach ($hypo->getItems() as $item) {
+						if ($item->getRow() === (int) $t[1]
+							&& $item->getCol() === (int) $t[2]
+							&& $item->getCharName() === $t[0]
+						) {
+							$hypoItem = $item;
+							break;
 						}
 					}
-				}
 
-				if ($m['to']->getCharName() === 'i') {
-					$to = $m['to'];
-				}
+					$targetItem = null;
+					foreach ($loadout->getItems() as $item) {
+						if ($item->getRow() === (int) $t[1]
+							&& $item->getCol() === (int) $t[2]
+							&& $item->getCharName() === $t[0]
+						) {
+							$targetItem = $item;
+							break;
+						}
+					}
 
-				if (null === $from || null === $to) {
-					goto invalid;
-				}
-
-				$m = $from->getMateria();
-				$from->setMateria($to->getMateria());
-				$to->setMateria($m);
-			}
-
-			foreach ($hypo->getItems() as $i) {
-				$rr = null;
-				foreach ($loadout->getItems() as $ri) {
-					if ($ri->getCharName() === $i->getCharName()
-						&& $ri->getRow() === $i->getRow()
-						&& $ri->getCol() === $i->getCol()
-						&& (
-							(($ri->getMateria() === null) !== ($i->getMateria() === null))
-							|| ($ri->getMateria() !== null
-								&& $ri->getMateria()->getId() !== $i->getMateria()->getId()))) {
-						goto invalid;
+					if (null === $hypoItem
+						|| null === $targetItem
+						|| (
+							((null === $hypoItem->getMateria()) !== (null === $targetItem->getMateria()))
+							|| (
+								null !== $hypoItem->getMateria()
+								&& $hypoItem->getMateria()->getId() !== $targetItem->getMateria()->getId()
+							)
+						)
+					) {
+						$failed = true;
+						break;
 					}
 				}
+
+				if (!$failed) {
+					continue;
+				}
 			}
 
-			continue;
-
-			invalid:
 			$invalid[] = $solution;
 			unset($solutions[$k]);
 		}
@@ -380,8 +471,75 @@ class LoadoutHelper {
 			'matchingDistance' => array_filter($solutions, static function ($e) use ($min) {
 				return $e['distance'] === $min;
 			}),
-			'timeout'          => $timeout
+			'timeout'          => $timeout,
+			'rejects'          => $invalid
 		];
+	}
+
+	public function simulate(array $solution, MateriaLoadout $loadout) {
+		$solution = unserialize(serialize($solution));
+
+		foreach ($solution['moves'] as $m) {
+			$from = $to = null;
+
+			foreach ($loadout->getItems() as $i) {
+				foreach (['from', 'to'] as $v) {
+					if ($i->getCharName() === $m[$v]->getCharName()
+						&& $i->getRow() === $m[$v]->getRow()
+						&& $i->getCol() === $m[$v]->getCol()) {
+						$$v = $i;
+					}
+				}
+			}
+
+			if ($m['to']->getCharName() === 'i') {
+				$to = $m['to'];
+			}
+
+			if (null === $from || null === $to) {
+				throw new \InvalidArgumentException('Error in layout/solution');
+			}
+
+			$m = $from->getMateria();
+			$from->setMateria($to->getMateria());
+			$to->setMateria($m);
+		}
+	}
+
+	public function checkIdentical(MateriaLoadout $from, MateriaLoadout $to) {
+		foreach ($to->getItems() as $i) {
+			foreach ($from->getItems() as $ri) {
+				if ($ri->getCharName() === $i->getCharName()
+					&& $ri->getRow() === $i->getRow()
+					&& $ri->getCol() === $i->getCol()
+					&& (
+						(($ri->getMateria() === null) !== ($i->getMateria() === null))
+						|| ($ri->getMateria() !== null
+							&& $ri->getMateria()->getId() !== $i->getMateria()->getId()))) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	public function copyItems(MateriaLoadout $from, MateriaLoadout $to) {
+		$to->getItems()->clear();
+
+		foreach ($from->getItems() as $item) {
+			$mli = new MateriaLoadoutItem();
+
+			$mli
+				->setRow($item->getRow())
+				->setCol($item->getCol())
+				->setCharName($item->getCharName())
+				->setMateria($item->getMateria())
+				->setLoadout($to)
+				->setPinned($item->getPinned());
+
+			$to->addItem($mli);
+		}
 	}
 
 	private const DIR_UP = 0;
@@ -529,6 +687,67 @@ class LoadoutHelper {
 
 			$this->addChildLoadouts($child, $cl);
 			$this->em->persist($cl);
+		}
+	}
+
+	public function cleanupAndPersist(User $owner, MateriaLoadout $cachedMl, $persist = true, $flush = true) {
+		$ml = $this->doCleanCopy($owner, $cachedMl);
+
+		if ($persist) {
+			$this->em->transactional(function () use ($ml, $flush) {
+				$this->em->persist($ml);
+
+				if ($flush) {
+					$this->em->flush();
+				}
+			});
+		}
+
+		return $ml;
+	}
+
+	private function doCleanCopy(User $owner, MateriaLoadout $current, MateriaLoadout $parent = null) {
+		$new = new MateriaLoadout();
+
+		$new
+			->setOwner($owner)
+			->setParent($parent)
+			->setName($current->getName())
+			->setPreferredChangeKey($current->getPreferredChangeKey())
+			->setPartyOrder($current->getPartyOrder())
+			->setStartCharacter($current->getStartCharacter());
+
+		$this->copyItems($current, $new);
+
+		if ($new->getItems()->isEmpty()) {
+			return null;
+		}
+
+		foreach ($new->getItems() as $item) {
+			if (null !== $item->getMateria()) {
+				$item->setMateria($this->em->getReference(Materia::class, $item->getMateria()->getId()));
+			}
+		}
+
+		foreach ($current->getChildren() as $child) {
+			$child = $this->doCleanCopy($owner, $child, $new);
+			if (null !== $child) {
+				$new->addChild($child);
+			}
+		}
+
+		return $new;
+	}
+
+	public function getLeveledChildren(MateriaLoadout $parent, &$result, $level = 0) {
+		if (!isset($result[$level])) {
+			$result[$level] = [];
+		}
+
+		$result[$level][] = $parent;
+
+		foreach ($parent->getChildren() as $child) {
+			$this->getLeveledChildren($child, $result, $level + 1);
 		}
 	}
 }

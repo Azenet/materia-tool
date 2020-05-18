@@ -50,6 +50,12 @@ class MateriaLoadoutItem {
 	 */
 	private $charName;
 
+	/**
+	 * @ORM\Column(type="boolean")
+	 * @Groups({"view", "diff"})
+	 */
+	private $pinned = false;
+
 	public function getId(): ?int {
 		return $this->id;
 	}
@@ -106,5 +112,15 @@ class MateriaLoadoutItem {
 
 	public function __toString() {
 		return $this->charName . $this->row . $this->col . ':' . $this->materia ?? 'NONE';
+	}
+
+	public function getPinned(): ?bool {
+		return $this->pinned;
+	}
+
+	public function setPinned(bool $pinned): self {
+		$this->pinned = $pinned;
+
+		return $this;
 	}
 }

@@ -19,6 +19,17 @@ class MateriaLoadoutRepository extends ServiceEntityRepository
         parent::__construct($registry, MateriaLoadout::class);
     }
 
+    public function getLoadoutWithMaterias($id) {
+    	return $this->createQueryBuilder('ml')
+			->where('ml.id = :id')->setParameter('id', $id)
+			->innerJoin('ml.items', 'mli')
+			->addSelect('mli')
+			->innerJoin('mli.materia', 'mlim')
+			->addSelect('mlim')
+			->getQuery()
+			->getOneOrNullResult();
+	}
+
     // /**
     //  * @return MateriaLoadout[] Returns an array of MateriaLoadout objects
     //  */

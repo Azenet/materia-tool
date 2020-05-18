@@ -18,6 +18,7 @@ class UserPreferencesType extends AbstractType {
 					'Letter (1, B, ...)'                                             => User::MATERIA_COORDINATES_PREFERENCE_LETTER,
 					'Character, row letter then number (CA1, TB2, ...)'              => User::MATERIA_COORDINATES_PREFERENCE_CHARACTER_ROW_NUMBER,
 					'Character then letter (C1, TB, ...)'                            => User::MATERIA_COORDINATES_PREFERENCE_CHARACTER_LETTER,
+					'Numbers (1,2,3,4,5,6,S then 7,8,9,10)'                          => User::MATERIA_COORDINATES_PREFERENCE_NUMBER,
 					'That Way MV Uses (first row 1,2,3,4,A,B,C, second row 5,6,7,8)' => User::MATERIA_COORDINATES_PREFERENCE_MV
 				],
 				'required'    => true,

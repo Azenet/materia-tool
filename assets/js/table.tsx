@@ -43,6 +43,12 @@ class MateriaCoordinateDisplay extends React.Component<{ character: string, row:
             } else {
                 value = this.props.col + 5;
             }
+        } else if (materiaCoordinatePreference === 5) {
+            if (this.props.col === 6) {
+                value = 'S';
+            } else {
+                value = (this.props.row * 6) + this.props.col + 1
+            }
         } else {
             if (materiaCoordinatePreference % 2 === 0) {
                 value = `${String.fromCharCode(65 + this.props.row)}${this.props.col + 1}`;

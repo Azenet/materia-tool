@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -51,7 +52,7 @@ class MateriaLoadoutType extends AbstractType {
 			->add('name')
 			->add('parent', EntityType::class, [
 				'required'      => false,
-				'help'          => 'Drag/drop movement for this is coming later.',
+				'help'          => 'Drag/drop movement for this is coming later. Leave empty if you\'re creating a new base layout.',
 				'class'         => MateriaLoadout::class,
 				'choice_label'  => 'name',
 				'placeholder'   => '-- No parent --',
@@ -62,7 +63,18 @@ class MateriaLoadoutType extends AbstractType {
 						->setParameter('user', $this->tsi->getToken()->getUser()->getId());
 				}
 			])
-			->add($partyOrder);
+			->add($partyOrder)
+			->add('startCharacter', ChoiceType::class, [
+				'required'    => false,
+				'help'        => 'This is only used for calculating more optimized moves.',
+				'choices'     => [
+					'Cloud'  => 'c',
+					'Barret' => 'b',
+					'Tifa'   => 't',
+					'Aerith' => 'a',
+				],
+				'placeholder' => 'Whoever is first in the current party order'
+			]);
 	}
 
 	public function configureOptions(OptionsResolver $resolver) {

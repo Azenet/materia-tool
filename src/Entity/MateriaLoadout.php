@@ -65,6 +65,11 @@ class MateriaLoadout {
 	 */
 	private $preferredChangeKey;
 
+	/**
+	 * @ORM\Column(type="string", length=2, nullable=true)
+	 */
+	private $startCharacter;
+
 	public function __construct() {
 		$this->children = new ArrayCollection();
 		$this->items    = new ArrayCollection();
@@ -202,6 +207,16 @@ class MateriaLoadout {
 
 	public function setPreferredChangeKey(?string $preferredChangeKey): self {
 		$this->preferredChangeKey = $preferredChangeKey;
+
+		return $this;
+	}
+
+	public function getStartCharacter(): ?string {
+		return $this->startCharacter;
+	}
+
+	public function setStartCharacter(?string $startCharacter): self {
+		$this->startCharacter = $startCharacter;
 
 		return $this;
 	}

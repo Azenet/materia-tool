@@ -603,11 +603,14 @@ class ChangeDisplay extends React.Component<{ loadoutId: number, favorite: strin
                 {fav}
                 <div className="row mb-2">
                     <div className="col">
-                    Minimum: {this.state.data.minimumDistance} ({this.state.data.matchingDistance.length} ways)
+                    {this.state.data.minimumDistance} D-pad presses
                     </div>
                     <div className="col-auto">
                         <Button onClick={() => {this.reload()}} size="sm">refresh</Button>
                     </div>
+                </div>
+                <div>
+                    Starting from {characters[this.state.data.startingOn]}:
                 </div>
                 <div>
                     <ChangeDisplaySolution solution={this.state.data.matchingDistance[0]} />

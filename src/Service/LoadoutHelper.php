@@ -67,6 +67,7 @@ class LoadoutHelper {
 		}
 
 		$empty = [
+			'startingOn'       => null,
 			'allSolutions'     => [],
 			'minimumDistance'  => null,
 			'matchingDistance' => [],
@@ -97,7 +98,7 @@ class LoadoutHelper {
 		$order = $loadout->getPartyOrder();
 		$og    = new MateriaLoadoutItem();
 		$og
-			->setCharName($order[0])
+			->setCharName($loadout->getStartCharacter() ?? $order[0])
 			->setCol(0)
 			->setRow(0);
 
@@ -373,6 +374,7 @@ class LoadoutHelper {
 		$min = $solutions[0]['distance'] ?? null;
 
 		return [
+			'startingOn'       => $loadout->getStartCharacter() ?? $order[0],
 			'allSolutions'     => $solutions,
 			'minimumDistance'  => $min,
 			'matchingDistance' => array_filter($solutions, static function ($e) use ($min) {

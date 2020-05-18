@@ -12,24 +12,70 @@ class LoadoutHelperTest extends TestCase {
 		$lh    = new LoadoutHelper($this->createMock(EntityManagerInterface::class));
 		$order = ['c', 'b', 't', 'a'];
 
-		$this->assertEquals(1, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(0, 1, 'c'), $order));
-		$this->assertEquals(2, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(1, 1, 'c'), $order));
-		$this->assertEquals(1, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(1, 0, 'c'), $order));
-		$this->assertEquals(2, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(0, 0, 'b'), $order));
-		$this->assertEquals(1, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(1, 0, 'a'), $order));
-		$this->assertEquals(2, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(0, 0, 'a'), $order));
-		$this->assertEquals(4, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(0, 0, 't'), $order));
-		$this->assertEquals(3, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(1, 0, 't'), $order));
+		$tests = [
+			// "legacy"
+			'c00c01=1',
+			'c00c11=2',
+			'c00c10=1',
+			'c00b00=2',
+			'c00a10=1',
+			'c00a00=2',
+			'c00t00=4',
+			'c00t10=3',
+			'c04c13=1',
+			'c04c12=2',
+			'c00a10=1',
+			'c04i00=0',
+			'c00c03=3',
+			'c00c04=3',
+			'c00c05=2',
+			'c00c06=1',
+			'c10c13=1',
+			'c00c13=2',
+			'c00b00=2',
+			'c00b13=4',
+			'c00a10=1',
+			'c00a13=2',
+			'c00c12=3',
+			'c00c13=2',
+			'c04b04=3',
 
-		$this->assertEquals(1, $lh->distance($this->getMLI(0, 4, 'c'), $this->getMLI(1, 3, 'c'), $order));
-		$this->assertEquals(2, $lh->distance($this->getMLI(0, 4, 'c'), $this->getMLI(1, 2, 'c'), $order));
+			// basic movement
+			'c00c01=1',
+			'c00c10=1',
+			'c00c11=2',
+			'c00b00=2',
+			'c00t00=4',
+			// wraparounds up/down
+			'c00t10=3',
+			'c00a10=1',
+			'a10c00=1',
+			't00c00=4',
+			't10c00=3',
+			// wraparounds left/right
+			'c00c06=1',
+			'c10c13=1',
+			'c00c13=2',
+			'c06c00=1',
+			'c13c10=1',
+			// wraparounds special row 0 -> row 1
+			'c04c13=1',
+			'c13c04=2',
+			'c04b04=3', // ..c13-b03-b04
+			'c04t04=5', // ..c13-b03-b13-t03-t04
+		];
 
-		// FIXME returns 2 instead of 3, maybe be more procedural about the calculation?
-		//$this->assertEquals(3, $lh->distance($this->getMLI(0, 4, 'c'), $this->getMLI(0, 4, 'b'), $order));
+		foreach ($tests as $test) {
+			preg_match('/(\w)(\d)(\d)(\w)(\d)(\d)=(\d+)/', $test, $m);
 
-		$this->assertEquals(1, $lh->distance($this->getMLI(0, 0, 'c'), $this->getMLI(1, 0, 'a'), $order));
-
-		$this->assertEquals(0, $lh->distance($this->getMLI(0, 4, 'c'), $this->getMLI(0, 0, 'i'), $order));
+			$this->assertEquals(
+				(int) $m[7],
+				$lh->distance(
+					$this->getMLI((int) $m[2], (int) $m[3], $m[1]),
+					$this->getMLI((int) $m[5], (int) $m[6], $m[4]), $order),
+				$test
+			);
+		}
 	}
 
 	private function getMLI($row, $col, $char) {

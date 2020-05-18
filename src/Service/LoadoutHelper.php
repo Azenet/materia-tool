@@ -382,55 +382,101 @@ class LoadoutHelper {
 		];
 	}
 
+	private const DIR_UP = 0;
+	private const DIR_RIGHT = 1;
+	private const DIR_DOWN = 2;
+	private const DIR_LEFT = 3;
+
+	private function doMove(MateriaLoadoutItem $cursor, int $direction, array $order) {
+		switch ($direction) {
+			case self::DIR_UP:
+				$cursor->setRow($cursor->getRow() - 1);
+				break;
+
+			case self::DIR_DOWN:
+				$cursor->setRow($cursor->getRow() + 1);
+				break;
+
+			case self::DIR_LEFT:
+				$cursor->setCol($cursor->getCol() - 1);
+				break;
+
+			case self::DIR_RIGHT:
+				$cursor->setCol($cursor->getCol() + 1);
+				break;
+		}
+
+		// move between characters
+		if ($cursor->getRow() < 0) {
+			$cursor
+				->setRow(1)
+				->setCharName($order[(array_search($cursor->getCharName(), $order, true) + 3) % count($order)]);
+		} else if ($cursor->getRow() > 1) {
+			$cursor
+				->setRow(0)
+				->setCharName($order[(array_search($cursor->getCharName(), $order, true) + 5) % count($order)]);
+		}
+
+		// handle going up/down from right materias on first row -> snaps to rightmost materia on second row
+		if (in_array($direction, [self::DIR_UP, self::DIR_DOWN]) && $cursor->getRow() === 1 && $cursor->getCol() > 3) {
+			$cursor->setCol(3);
+		}
+
+		// handle going left on leftmost materia
+		if ($cursor->getCol() < 0) {
+			if ($cursor->getRow() === 0) {
+				$cursor->setCol(6);
+			} else {
+				$cursor->setCol(3);
+			}
+		}
+
+		// handle going right on rightmost materia
+		if (
+			($cursor->getCol() > 6 && $cursor->getRow() === 0)
+			|| ($cursor->getCol() > 3 && $cursor->getRow() === 1)) {
+			$cursor->setCol(0);
+		}
+	}
+
+	// rewritten in a "procedural" way to handle edge cases
 	public function distance(MateriaLoadoutItem $from, MateriaLoadoutItem $to, array $order) {
 		if ($from->getCharName() === 'i' || $to->getCharName() === 'i') {
 			// swap from inventory, distance is not considered
 			return 0;
 		}
 
-		$startOrder = array_search($from->getCharName(), $order, true);
-		$endOrder   = array_search($to->getCharName(), $order, true);
+		$cursor = clone($from);
 
-		// if total height is ==5 then it wraps at 3, if it is 6 it wraps at 2, 7 (4B<>1A) -> 1
-		// A5/A6 + down goes to B4
+		$du = 0;
+		$dd = 0;
 
-		$bd = 2 * (abs($endOrder - $startOrder));
+		$cu = clone($cursor);
+		$cd = clone($cursor);
 
-		if ($endOrder === $startOrder && $from->getRow() !== $to->getRow()) {
-			$bd = 1;
+		foreach ([self::DIR_UP => [$cu, &$du], self::DIR_DOWN => [$cd, &$dd]] as $k => $v) {
+			while ($v[0]->getRow() !== $to->getRow() || $v[0]->getCharName() !== $to->getCharName()) {
+				$v[1]++;
+				$this->doMove($v[0], $k, $order);
+			}
 		}
 
-		/*
-		 * 1A->2B -> +1
-		 * 1B->2A -> -1
-		 * 2B->1A -> +1
-		 * 1B->2A -> -1
-		 */
-		if (($endOrder > $startOrder && $to->getRow() > $from->getRow()) ||
-			($endOrder < $startOrder && $to->getRow() < $from->getRow())) {
-			$bd++;
-		} elseif (($endOrder > $startOrder && $to->getRow() < $from->getRow()) ||
-				  ($endOrder < $startOrder && $to->getRow() > $from->getRow())) {
-			$bd--;
+		$cursor = $du > $dd ? $cd : $cu;
+
+		$dl = 0;
+		$dr = 0;
+
+		$cl = clone($cursor);
+		$cr = clone($cursor);
+
+		foreach ([self::DIR_LEFT => [$cl, &$dl], self::DIR_RIGHT => [$cr, &$dr]] as $k => $v) {
+			while ($v[0]->getCol() !== $to->getCol()) {
+				$v[1]++;
+				$this->doMove($v[0], $k, $order);
+			}
 		}
 
-		if ($bd >= 5) {
-			$bd -= 2 * ($bd % 4);
-		}
-
-		$extra = 0;
-		if ($from->getCol() >= 4 || $to->getCol() >= 4) {
-			// FIXME mostly invalid
-			$cf = clone $from;
-			$ct = clone $to;
-
-			$cf->setCol(min(3, $cf->getCol()));
-			$ct->setCol(min(3, $ct->getCol()));
-
-			return $this->distance($cf, $ct, $order);
-		}
-
-		return $bd + abs($from->getCol() - $to->getCol()) + $extra;
+		return min($du, $dd) + min($dl, $dr);
 	}
 
 	public function addDemoLoadoutToUser(User $user) {

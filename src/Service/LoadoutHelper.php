@@ -401,55 +401,80 @@ class LoadoutHelper {
 					return sprintf('%s%d%d', $i->getCharName(), $i->getRow(), $i->getCol());
 				};
 
-				$touched = [];
+				$touched = ['from' => [], 'to' => []];
 				foreach ($solution['moves'] as $move) {
-					$touched[] = $key($move['from']);
-					$touched[] = $key($move['to']);
+					$touched['from'][] = $key($move['from']);
+					$touched['to'][]   = $key($move['to']);
 				}
 
-				$touched = array_unique($touched);
+				$touched = array_map('array_unique', $touched);
 
 				$failed = false;
 
-				foreach ($touched as $t) {
-					if ($t[0] === 'i') {
-						continue;
-					}
+				foreach ($touched as $type => $v) {
+					foreach ($v as $t) {
+						if ($t[0] === 'i') {
+							continue;
+						}
 
-					$hypoItem = null;
-					foreach ($hypo->getItems() as $item) {
-						if ($item->getRow() === (int) $t[1]
-							&& $item->getCol() === (int) $t[2]
-							&& $item->getCharName() === $t[0]
-						) {
-							$hypoItem = $item;
+						$hypoItem = null;
+						foreach ($hypo->getItems() as $item) {
+							if ($item->getRow() === (int) $t[1]
+								&& $item->getCol() === (int) $t[2]
+								&& $item->getCharName() === $t[0]
+							) {
+								$hypoItem = $item;
+								break;
+							}
+						}
+
+						$targetItem = null;
+						foreach ($loadout->getItems() as $item) {
+							if ($item->getRow() === (int) $t[1]
+								&& $item->getCol() === (int) $t[2]
+								&& $item->getCharName() === $t[0]
+							) {
+								$targetItem = $item;
+								break;
+							}
+						}
+
+						// be sure to fail only on pinned materias having moved
+						if ($type === 'from' && $loadout->getParent() !== null) {
+							$sourceItem = null;
+							foreach ($loadout->getParent()->getItems() as $item) {
+								if ($item->getRow() === (int) $t[1]
+									&& $item->getCol() === (int) $t[2]
+									&& $item->getCharName() === $t[0]
+								) {
+									$sourceItem = $item;
+									break;
+								}
+							}
+
+							if (null !== $sourceItem && !$sourceItem->getPinned()) {
+								continue;
+							}
+						}
+						if (null === $hypoItem
+							|| null === $targetItem) {
+							// layout inconsistency
+							$failed = true;
 							break;
 						}
-					}
 
-					$targetItem = null;
-					foreach ($loadout->getItems() as $item) {
-						if ($item->getRow() === (int) $t[1]
-							&& $item->getCol() === (int) $t[2]
-							&& $item->getCharName() === $t[0]
-						) {
-							$targetItem = $item;
-							break;
-						}
-					}
-
-					if (null === $hypoItem
-						|| null === $targetItem
-						|| (
-							((null === $hypoItem->getMateria()) !== (null === $targetItem->getMateria()))
-							|| (
-								null !== $hypoItem->getMateria()
-								&& $hypoItem->getMateria()->getId() !== $targetItem->getMateria()->getId()
+						if ($targetItem->getPinned()
+							&& (
+								((null === $hypoItem->getMateria()) !== (null === $targetItem->getMateria()))
+								|| (
+									null !== $hypoItem->getMateria()
+									&& $hypoItem->getMateria()->getId() !== $targetItem->getMateria()->getId()
+								)
 							)
-						)
-					) {
-						$failed = true;
-						break;
+						) {
+							$failed = true;
+							break;
+						}
 					}
 				}
 

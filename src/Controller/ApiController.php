@@ -216,24 +216,25 @@ class ApiController extends AbstractFOSRestController {
 			if (!empty($solutions['matchingDistance'])) {
 				$solution = $solutions['matchingDistance'][0];
 
-				$this->lh->simulate($solution, $fromO);
+				// FIXME removed simulate+identical check because it both :
+				// - makes no sense since any unpinned materia can be moved
+				// - *should* be covered in the diffWithParent checks
+				// would love to double check though
 
-				if ($this->lh->checkIdentical($fromO, $toO)) {
-					$toO->setParent(null);
-					$fixCollection($toO);
+				$toO->setParent(null);
+				$fixCollection($toO);
 
-					$cid = $cacheId();
-					$session->set($cid, $toO);
+				$cid = $cacheId();
+				$session->set($cid, $toO);
 
-					$fromChild = $from . '_children';
-					$a         = $session->get($fromChild, []);
+				$fromChild = $from . '_children';
+				$a         = $session->get($fromChild, []);
 
-					if (!in_array($cid, $a, true)) {
-						$a[] = $cid;
-					}
-
-					$session->set($fromChild, $a);
+				if (!in_array($cid, $a, true)) {
+					$a[] = $cid;
 				}
+
+				$session->set($fromChild, $a);
 			}
 
 			return [
